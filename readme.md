@@ -235,6 +235,12 @@ This project is licensed under MIT License - see the LICENSE file for details.
 
 ---
 
+## Team Members
+
+- Amulya B
+- Yashika Sridhar
+- Rudhresh 
+
 ## Quick Start Example
 
 ```python
