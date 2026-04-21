@@ -1,10 +1,10 @@
 # Spam Email Detection Project
 
-A modular machine learning pipeline for detecting spam emails with clean function-based design and professional ML engineering practices.
+A professional machine learning pipeline demonstrating clean modular design with proper separation of concerns and production-ready code structure.
 
 ## Overview
 
-This project implements a complete, production-ready ML workflow for spam email classification. The system uses a structured approach with separate modules for data loading, preprocessing, model training, and evaluation. It demonstrates best practices in ML engineering including clean imports, function-based design, and reproducible workflows.
+This project showcases engineering discipline in ML through a properly structured spam email detection system. The implementation follows best practices with clear separation between training and prediction logic, reusable components, and import-safe modular design. Each module has a single responsibility and the entire pipeline can run from a clean environment.
 
 ## Machine Learning Workflow
 
@@ -54,15 +54,17 @@ Continuous monitoring for model performance:
 
 ```
 Simulated_Work_05/
-├── src/
-│   ├── data_loader.py      # Data loading functionality
-│   ├── preprocessing.py    # Data preprocessing and feature engineering
-│   ├── model.py           # Model training and management
-│   ├── evaluate.py        # Model evaluation and metrics
-│   └── main.py            # Workflow orchestration
-├── models/                # Trained models saved here
-├── requirements.txt       # Python dependencies (pinned versions)
-└── README.md              # Project documentation
+| data/                   # Data storage directory
+| models/                 # Saved model artifacts
+| src/
+| | config.py            # Shared constants and configuration
+| | data_preprocessing.py # Data loading, cleaning, splitting
+| | feature_engineering.py # Reusable feature transformations
+| | train.py             # Model training and artifact saving
+| | evaluate.py          # Comprehensive metrics computation
+| | predict.py           # Load artifacts and make predictions
+| requirements.txt       # Python dependencies (pinned versions)
+| README.md              # Project documentation
 ```
 
 ## Key Features
@@ -117,42 +119,62 @@ pip install -r requirements.txt
 
 ## Usage
 
-### Run Complete ML Pipeline
+### Training Pipeline
 ```bash
-python src/main.py
+# Train the model and save artifacts
+python src/train.py
 ```
 
-This single command executes the entire workflow:
-1. Data loading (synthetic spam email features)
-2. Data preprocessing and feature engineering
+This command executes the complete training workflow:
+1. Data loading and preprocessing
+2. Feature engineering with reusable transformations
 3. Model training (Random Forest by default)
-4. Model evaluation with comprehensive metrics
-5. Model saving to `models/spam_classifier.pkl`
+4. Comprehensive evaluation
+5. Artifact saving to `models/` directory
+
+### Prediction Pipeline
+```bash
+# Make predictions using saved artifacts
+python src/predict.py
+```
 
 ### Individual Module Usage
 
-#### Load Data
+#### Data Preprocessing
 ```python
-from src.data_loader import load_data
+from src.data_preprocessing import load_data, clean_data, split_data
 X, y = load_data(synthetic=True)
+X_clean, y_clean = clean_data(X, y)
+X_train, X_test, y_train, y_test = split_data(X_clean, y_clean)
 ```
 
-#### Preprocess Data
+#### Feature Engineering
 ```python
-from src.preprocessing import preprocess_data
-X_train, X_test, y_train, y_test, info = preprocess_data(X, y)
+from src.feature_engineering import fit_preprocessor, transform_features
+preprocessor, X_train_transformed = fit_preprocessor(X_train, y_train)
+X_test_transformed = transform_features(preprocessor, X_test)
 ```
 
-#### Train Model
+#### Training
 ```python
-from src.model import train_model
-model, training_info = train_model(X_train, y_train, model_type='random_forest')
+from src.train import train_model, save_model
+model, training_info = train_model(X_train_transformed, y_train)
+save_model(model)
 ```
 
-#### Evaluate Model
+#### Prediction
 ```python
-from src.evaluate import evaluate_model
-results = evaluate_model(model, X_test, y_test)
+from src.predict import load_classifier
+classifier = load_classifier()
+result = classifier.predict_single(features_dict)
+print(f"Prediction: {result['label']}")
+```
+
+#### Evaluation
+```python
+from src.evaluate import evaluate_model, print_evaluation_summary
+results = evaluate_model(y_true, y_pred, y_proba)
+print_evaluation_summary(results)
 ```
 
 ## Performance Metrics
