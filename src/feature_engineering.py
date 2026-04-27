@@ -9,4 +9,5 @@ def build_pipeline():
         ("tfidf", TfidfVectorizer())
     ])
 
-    return pipeline
+if __name__ == "__main__":
+    main()
