@@ -1,13 +1,12 @@
-# src/feature_engineering.py
-
-from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
+from sklearn.feature_extraction.text import TfidfVectorizer
+
 
 def build_pipeline():
-    """Create preprocessing pipeline"""
+    """Create preprocessing pipeline for text data"""
     
     pipeline = Pipeline([
-        ("scaler", StandardScaler())
+        ("tfidf", TfidfVectorizer())
     ])
 
     return pipeline
