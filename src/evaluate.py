@@ -1,12 +1,16 @@
-# src/evaluate.py
+import csv
+from datetime import datetime
 
-from sklearn.metrics import accuracy_score
-
-def evaluate_model(model, X_test, y_test) -> dict:
-    """Evaluate model"""
-    
-    preds = model.predict(X_test)
-
-    return {
-        "accuracy": accuracy_score(y_test, preds)
-    }
+def log_experiment(model_name, metrics):
+    with open("logs/experiment_log.csv", mode="a", newline="") as file:
+        writer = csv.writer(file)
+        
+        writer.writerow([
+            datetime.now(),
+            model_name,
+            metrics["accuracy"],
+            metrics["precision"],
+            metrics["recall"],
+            metrics["f1_score"],
+            "experiment run"
+        ])
