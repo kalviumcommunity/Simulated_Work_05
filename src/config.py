@@ -1,12 +1,25 @@
-# src/config.py
-
-DATA_PATH = "data/raw/data.csv"
-MODEL_PATH = "models/model.pkl"
-
+# Target
 TARGET_COLUMN = "label"
 
-TEST_SIZE = 0.2
-RANDOM_STATE = 42
+# Numerical features
+NUMERICAL_FEATURES = [
+    # none for now
+]
 
-CATEGORICAL_COLS = []
-NUMERICAL_COLS = []
+# Categorical features
+CATEGORICAL_FEATURES = [
+    # none for now
+]
+
+# Text features
+TEXT_FEATURES = [
+    "text"
+]
+
+# Excluded
+EXCLUDED_COLUMNS = [
+    # add if dataset has ID column
+]
+
+# Combined
+ALL_FEATURES = TEXT_FEATURES
