@@ -1,12 +1,3 @@
-"""
-Feature engineering module for spam email detection.
-Builds reusable transformations and pipelines for feature processing.
-"""
-
-import pandas as pd
-import numpy as np
-from sklearn.preprocessing import StandardScaler
-from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.pipeline import Pipeline
 from sklearn.base import BaseEstimator, TransformerMixin
 from typing import Tuple, Dict, Any, List, Optional
@@ -163,147 +154,15 @@ def transform_features(preprocessor: Pipeline, X: np.ndarray) -> np.ndarray:
     logger.info(f"Features transformed. Output shape: {X_transformed.shape}")
     
     return X_transformed
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 
-def save_preprocessor(preprocessor: Pipeline, filepath: str = None) -> None:
-    """
-    Save the fitted preprocessor to disk.
+def build_pipeline():
+    """Create preprocessing pipeline for text data"""
     
-    Args:
-        preprocessor (Pipeline): Fitted preprocessor
-        filepath (str): Path to save the preprocessor
-    """
-    if filepath is None:
-        filepath = PREPROCESSOR_FILE
-    
-    logger.info(f"Saving preprocessor to {filepath}")
-    
-    joblib.dump(preprocessor, filepath)
-    
-    logger.info("Preprocessor saved successfully")
-
-
-def load_preprocessor(filepath: str = None) -> Pipeline:
-    """
-    Load a fitted preprocessor from disk.
-    
-    Args:
-        filepath (str): Path to the saved preprocessor
-        
-    Returns:
-        Pipeline: Loaded preprocessor
-    """
-    if filepath is None:
-        filepath = PREPROCESSOR_FILE
-    
-    logger.info(f"Loading preprocessor from {filepath}")
-    
-    preprocessor = joblib.load(filepath)
-    
-    logger.info("Preprocessor loaded successfully")
-    
-    return preprocessor
-
-
-def get_feature_importance(preprocessor: Pipeline, feature_names: List[str]) -> Dict[str, float]:
-    """
-    Get feature importance from the preprocessor if it includes feature selection.
-    
-    Args:
-        preprocessor (Pipeline): Fitted preprocessor
-        feature_names (List[str]): Original feature names
-        
-    Returns:
-        Dict[str, float]: Feature importance scores
-    """
-    logger.info("Extracting feature importance...")
-    
-    importance_dict = {}
-    
-    # Check if pipeline has feature selector
-    if 'feature_selector' in preprocessor.named_steps:
-        selector = preprocessor.named_steps['feature_selector']
-        selected_indices = selector.selected_features
-        
-        # Get scores from the selector
-        scores = selector.selector.scores_
-        
-        # Create importance dictionary for selected features
-        for idx in selected_indices:
-            if idx < len(feature_names):
-                importance_dict[feature_names[idx]] = float(scores[idx])
-    
-    logger.info(f"Feature importance extracted for {len(importance_dict)} features")
-    
-    return importance_dict
-
-
-def save_feature_names(feature_names: List[str], selected_indices: Optional[List[int]] = None, filepath: str = None) -> None:
-    """
-    Save feature names to disk.
-    
-    Args:
-        feature_names (List[str]): Original feature names
-        selected_indices (Optional[List[int]]): Indices of selected features
-        filepath (str): Path to save the feature names
-    """
-    if filepath is None:
-        filepath = FEATURE_NAMES_FILE
-    
-    logger.info(f"Saving feature names to {filepath}")
-    
-    if selected_indices is not None:
-        saved_names = [feature_names[i] for i in selected_indices if i < len(feature_names)]
-    else:
-        saved_names = feature_names
-    
-    joblib.dump(saved_names, filepath)
-    
-    logger.info(f"Feature names saved: {len(saved_names)} names")
-
-
-def load_feature_names(filepath: str = None) -> List[str]:
-    """
-    Load feature names from disk.
-    
-    Args:
-        filepath (str): Path to the saved feature names
-        
-    Returns:
-        List[str]: Loaded feature names
-    """
-    if filepath is None:
-        filepath = FEATURE_NAMES_FILE
-    
-    logger.info(f"Loading feature names from {filepath}")
-    
-    feature_names = joblib.load(filepath)
-    
-    logger.info(f"Feature names loaded: {len(feature_names)} names")
-    
-    return feature_names
-
-
-def main():
-    """
-    Main function to demonstrate feature engineering pipeline.
-    """
-    logger.info("Starting feature engineering pipeline...")
-    
-    try:
-        # This would typically be called from train.py
-        # Just demonstrating the pipeline creation
-        pipeline = create_feature_pipeline()
-        
-        logger.info("Feature engineering pipeline created successfully!")
-        logger.info(f"Pipeline steps: {pipeline.named_steps.keys()}")
-        
-        return pipeline
-        
-    except Exception as e:
-        logger.error(f"Error in feature engineering: {str(e)}")
-        raise
-
+    pipeline = Pipeline([
+        ("tfidf", TfidfVectorizer())
+    ])
 
 if __name__ == "__main__":
     main()

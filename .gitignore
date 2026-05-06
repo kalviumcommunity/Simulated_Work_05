@@ -83,3 +83,6 @@ models/*.joblib
 data/*.csv
 data/*.json
 data/*.parquet
+__pycache__/
+*.pyc
+venv/
