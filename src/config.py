@@ -60,7 +60,7 @@ NUMERICAL_FEATURES = [
     'capital_run_length_longest',  # Statistical measure - continuous
     'capital_run_length_total',    # Statistical measure - continuous
     'email_length',              # Text measurement - continuous
-    'subject_length'              # Text measurement - continuous
+    'subject_length',              # Text measurement - continuous
     'sender_reputation'           # Numerical score - continuous
 ]
 
