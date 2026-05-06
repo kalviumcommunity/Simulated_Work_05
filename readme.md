@@ -107,11 +107,155 @@ Simulated_Work_05/
 - Collect new training data
 - Regular model retraining
 
+## Environment Setup
+
+This project uses a Python virtual environment to ensure reproducibility and isolation of dependencies.
+
+### Python Version
+- **Python 3.11** (recommended)
+- Tested with Python 3.11.0+
+
+### Create Virtual Environment
+
+#### Windows
+```bash
+# Navigate to project directory
+cd Simulated_Work_05
+
+# Create virtual environment
+python -m venv venv
+
+# Activate virtual environment
+.\venv\Scripts\activate
+```
+
+#### macOS/Linux
+```bash
+# Navigate to project directory
+cd Simulated_Work_05
+
+# Create virtual environment
+python -m venv venv
+
+# Activate virtual environment
+source venv/bin/activate
+```
+
+### Install Dependencies
+
+After activating the virtual environment:
+
+```bash
+# Install all required packages with pinned versions
+pip install -r requirements.txt
+```
+
+### Verify Setup
+
+Test that the environment is working correctly:
+
+```bash
+# Test training pipeline
+python src/train.py
+
+# Test prediction pipeline
+python src/predict.py
+```
+
+### Reproduce Environment from Scratch
+
+To completely reproduce the environment on a clean machine:
+
+```bash
+# 1. Clone the repository
+git clone <repository-url>
+cd Simulated_Work_05
+
+# 2. Create and activate virtual environment
+python -m venv venv
+# On Windows: .\venv\Scripts\activate
+# On macOS/Linux: source venv/bin/activate
+
+# 3. Install dependencies
+pip install -r requirements.txt
+
+# 4. Verify installation
+python src/train.py
+```
+
+### Environment Isolation
+
+The virtual environment ensures:
+- **Package Isolation**: Dependencies are installed only within the venv
+- **Version Control**: Exact versions are pinned in `requirements.txt`
+- **Reproducibility**: Same environment can be recreated on any machine
+- **No Global Pollution**: Doesn't affect your system Python installation
+
+### Deactivate Environment
+
+When done working on the project:
+
+```bash
+deactivate
+```
+
+### OS-Specific Considerations
+
+#### Windows
+- Use PowerShell or Command Prompt
+- Ensure Python is in your PATH
+- Run as Administrator if permission issues occur
+
+#### macOS
+- Use built-in Python 3 or install via Homebrew
+- May need to install Xcode Command Line Tools: `xcode-select --install`
+
+#### Linux
+- Install Python 3 and pip if not present:
+  ```bash
+  # Ubuntu/Debian
+  sudo apt update
+  sudo apt install python3 python3-pip python3-venv
+  
+  # CentOS/RHEL
+  sudo yum install python3 python3-pip
+  ```
+
+### Troubleshooting
+
+#### Common Issues
+
+1. **Permission Denied**: Run with appropriate permissions or use user directory
+2. **Module Not Found**: Ensure virtual environment is activated
+3. **Version Conflicts**: Delete venv and recreate with fresh install
+4. **Path Issues**: Verify Python is in system PATH
+
+#### Reset Environment
+
+```bash
+# Deactivate if active
+deactivate
+
+# Remove virtual environment
+rm -rf venv  # macOS/Linux
+rmdir /s venv  # Windows
+
+# Recreate and reinstall
+python -m venv venv
+# Activate (platform-specific)
+pip install -r requirements.txt
+```
+
 ## Installation & Setup
 
 ```bash
 # Navigate to project directory
 cd Simulated_Work_05
+
+# Create and activate virtual environment
+python -m venv venv
+.\venv\Scripts\activate  # Windows
+# source venv/bin/activate  # macOS/Linux
 
 # Install dependencies
 pip install -r requirements.txt
