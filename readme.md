@@ -721,6 +721,163 @@ print(f"Categorical count: {FEATURE_METADATA['categorical_features']['count']}")
 - ✅ No automatic type detection using df.select_dtypes()
 - ✅ Comprehensive documentation for team collaboration
 
+## Numerical Feature Scaling
+
+This project implements professional numerical feature scaling using **StandardScaler** with strict adherence to machine learning best practices.
+
+### Scaling Implementation Overview
+
+```python
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import StandardScaler
+from src.config import NUMERICAL_FEATURES, CATEGORICAL_FEATURES
+
+# Create ColumnTransformer for proper feature-specific scaling
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', StandardScaler(), NUMERICAL_FEATURES),  # Scale numerical features
+        ('cat', 'passthrough', CATEGORICAL_FEATURES)     # Pass through categorical features
+    ]
+)
+```
+
+### Features That Were Scaled
+
+| Feature | Type | Scaling Applied | Reason |
+|---------|------|----------------|---------|
+| `word_freq_free` | Numerical | ✅ StandardScaler | Continuous frequency count |
+| `word_freq_offer` | Numerical | ✅ StandardScaler | Continuous frequency count |
+| `word_freq_win` | Numerical | ✅ StandardScaler | Continuous frequency count |
+| `word_freq_money` | Numerical | ✅ StandardScaler | Continuous frequency count |
+| `word_freq_click` | Numerical | ✅ StandardScaler | Continuous frequency count |
+| `word_freq_business` | Numerical | ✅ StandardScaler | Continuous frequency count |
+| `word_freq_email` | Numerical | ✅ StandardScaler | Continuous frequency count |
+| `word_freq_internet` | Numerical | ✅ StandardScaler | Continuous frequency count |
+| `word_freq_order` | Numerical | ✅ StandardScaler | Continuous frequency count |
+| `word_freq_credit` | Numerical | ✅ StandardScaler | Continuous frequency count |
+| `char_freq_exclamation` | Numerical | ✅ StandardScaler | Continuous frequency count |
+| `char_freq_dollar` | Numerical | ✅ StandardScaler | Continuous frequency count |
+| `capital_run_length_average` | Numerical | ✅ StandardScaler | Statistical measure |
+| `capital_run_length_longest` | Numerical | ✅ StandardScaler | Statistical measure |
+| `capital_run_length_total` | Numerical | ✅ StandardScaler | Statistical measure |
+| `email_length` | Numerical | ✅ StandardScaler | Text measurement |
+| `subject_length` | Numerical | ✅ StandardScaler | Text measurement |
+| `sender_reputation` | Numerical | ✅ StandardScaler | Numerical score |
+
+**Total Scaled Features**: 18 numerical features
+
+### Features NOT Scaled (Categorical)
+
+| Feature | Type | Scaling Applied | Reason |
+|---------|------|----------------|---------|
+| `has_html` | Categorical | ❌ None | Binary indicator (0/1) |
+| `has_attachments` | Categorical | ❌ None | Binary indicator (0/1) |
+
+**Why Not Scaled**: Binary categorical features don't benefit from scaling as they already have meaningful values (0/1). Scaling would not improve model performance.
+
+### Why Scaling Was Required
+
+**Model**: Random Forest Classifier (with support for Distance-Based Algorithms)
+
+**Reasons for Scaling**:
+1. **Distance-Based Algorithms**: If using SVM, Logistic Regression, or Neural Networks, features must be on the same scale
+2. **Feature Importance**: Ensures all numerical features contribute equally to distance calculations
+3. **Convergence**: Helps gradient-based algorithms converge faster
+4. **Consistency**: Provides consistent feature magnitudes across the dataset
+
+**StandardScaler Benefits**:
+- Centers features around mean=0
+- Scales to unit variance (std=1)
+- Handles outliers better than MinMaxScaler
+- Preserves relative distances between data points
+
+### Proper Train-Test Split Before Scaling
+
+```python
+from sklearn.model_selection import train_test_split
+
+# Step 1: Split data BEFORE scaling (CRITICAL)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
+
+# Step 2: Fit scaler ONLY on training data
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train[NUMERICAL_FEATURES])
+
+# Step 3: Transform test data using fitted scaler (NEVER fit on test)
+X_test_scaled = scaler.transform(X_test[NUMERICAL_FEATURES])
+
+# Step 4: Save scaler for inference
+import joblib
+joblib.dump(scaler, 'models/standard_scaler.pkl')
+```
+
+**Confirmation**: ✅ Scaling occurs AFTER train-test split
+**Confirmation**: ✅ Scaler fitted ONLY on training data
+**Confirmation**: ✅ Test data transformed using fitted scaler
+**Confirmation**: ✅ No data leakage from test to train
+
+### Scaler Persistence
+
+```python
+from src.feature_engineering import save_scaler, load_scaler
+import joblib
+
+# Save fitted scaler after training
+save_scaler(preprocessor, 'models/standard_scaler.pkl')
+
+# Load scaler for inference (production)
+scaler = load_scaler('models/standard_scaler.pkl')
+
+# Use for prediction (transform only, NEVER fit)
+new_data_scaled = scaler.transform(new_data[NUMERICAL_FEATURES])
+```
+
+**Critical Principle**: Saved scaler is **NEVER refitted** during inference. It uses the mean and scale parameters learned from training data.
+
+### Why Categorical Features Were Not Scaled
+
+1. **Binary Indicators**: Values (0/1) are already meaningful and don't need normalization
+2. **Interpretability**: Scaling binary features makes interpretation harder
+3. **Tree-Based Models**: Random Forest doesn't require feature scaling
+4. **One-Hot Encoding**: If categorical features were one-hot encoded, scaling is unnecessary
+
+### Implementation Example
+
+```python
+from src.feature_engineering import create_feature_pipeline, demonstrate_proper_scaling_workflow
+
+# Method 1: Using ColumnTransformer pipeline (recommended)
+pipeline = create_feature_pipeline(
+    scale_features=True,
+    select_features=True,
+    numerical_features=NUMERICAL_FEATURES,
+    categorical_features=CATEGORICAL_FEATURES
+)
+
+# Method 2: Complete workflow demonstration
+X_train_scaled, X_test_scaled, y_train, y_test, scaler = demonstrate_proper_scaling_workflow()
+```
+
+### Validation Results
+
+After implementing proper scaling:
+- **Training Set**: Successfully scaled 18 numerical features
+- **Test Set**: Transformed using training scaler parameters
+- **Categorical Features**: Unchanged (verified)
+- **Scaler Saved**: `models/standard_scaler.pkl`
+- **Data Leakage**: Prevented by splitting before scaling
+
+### Best Practices Enforced
+
+✅ **Split Before Scale**: Always split train/test before any scaling  
+✅ **Fit on Train Only**: Scaler learns parameters from training data only  
+✅ **Transform Both**: Apply fitted scaler to both train and test sets  
+✅ **No Refitting**: Saved scaler never refitted during inference  
+✅ **Numerical Only**: Only scale numerical features, never categorical  
+✅ **Persistence**: Save and load scaler for consistent inference  
+
 ## Quick Start Example
 
 ```python
