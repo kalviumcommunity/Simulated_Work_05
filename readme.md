@@ -246,6 +246,151 @@ python -m venv venv
 pip install -r requirements.txt
 ```
 
+## Project Setup Instructions
+
+This section provides step-by-step instructions to set up spam email detection project from scratch.
+
+### Prerequisites
+
+- **Python 3.11+** (recommended)
+- **Git** for version control
+- **Command line/terminal** access
+
+### Step 1: Clone Repository
+
+```bash
+git clone <repository-url>
+cd Simulated_Work_05
+```
+
+### Step 2: Create Virtual Environment
+
+#### Windows (PowerShell/Command Prompt)
+```bash
+python -m venv venv
+.\venv\Scripts\activate
+```
+
+#### macOS/Linux
+```bash
+python -m venv venv
+source venv/bin/activate
+```
+
+### Step 3: Install Dependencies
+
+After activating virtual environment:
+
+```bash
+pip install -r requirements.txt
+```
+
+This will install the following pinned versions:
+- pandas==3.0.2
+- numpy==2.4.4
+- scikit-learn==1.8.0
+- joblib==1.5.3
+- matplotlib==3.10.9
+- seaborn==0.13.2
+- scipy==1.17.1
+
+### Step 4: Run Training Script
+
+```bash
+python src/train.py
+```
+
+Expected output:
+- Training pipeline completes successfully
+- Model artifacts saved to `models/` directory
+- Test accuracy: ~86%
+- Test ROC AUC: ~95%
+
+### Step 5: Run Evaluation
+
+The training script includes built-in evaluation. For detailed metrics:
+
+```bash
+python src/evaluate.py
+```
+
+### Step 6: Run Prediction
+
+```bash
+python src/predict.py
+```
+
+Expected output:
+- Loads trained model from `models/` directory
+- Makes sample predictions
+- Shows confidence scores
+
+### Step 7: Verify Setup
+
+Your setup is complete if:
+- Virtual environment activated successfully
+- All dependencies installed without errors
+- Training script runs to completion
+- Prediction script works with saved model
+- No import errors or missing packages
+
+### Troubleshooting
+
+#### Common Issues
+
+1. **"python is not recognized"**
+   - Ensure Python 3.11+ is installed and in PATH
+   - Use `python3` instead of `python` if needed
+
+2. **"venv Scripts not found"**
+   - Use full path: `python -m venv venv`
+   - Check Python installation includes venv module
+
+3. **"pip install fails"**
+   - Update pip: `python -m pip install --upgrade pip`
+   - Check internet connection
+   - Verify requirements.txt format
+
+4. **"ModuleNotFoundError"**
+   - Ensure virtual environment is activated
+   - Verify all packages installed: `pip list`
+   - Reinstall if needed: `pip install -r requirements.txt`
+
+5. **Permission errors**
+   - Run as administrator (Windows)
+   - Use user directory for virtual environment
+
+#### Reset Environment
+
+If setup fails, start fresh:
+
+```bash
+# Deactivate if active
+deactivate
+
+# Remove virtual environment
+rm -rf venv  # macOS/Linux
+rmdir /s /q venv  # Windows
+
+# Recreate and reinstall
+python -m venv venv
+# Activate (platform-specific)
+pip install -r requirements.txt
+```
+
+### Project Structure After Setup
+
+```
+Simulated_Work_05/
+├── venv/                  # Virtual environment (excluded from git)
+├── data/                  # Data directory
+├── models/                # Saved model artifacts
+├── src/                   # Source code
+├── requirements.txt        # Pinned dependencies
+├── .gitignore            # Git exclusions
+└── README.md             # This file
+```
+
 ## Installation & Setup
 
 ```bash
