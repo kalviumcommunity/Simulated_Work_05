@@ -203,92 +203,11 @@ def transform_features(preprocessor: Pipeline, X: np.ndarray) -> np.ndarray:
     logger.info(f"Features transformed. Output shape: {X_transformed.shape}")
     
     return X_transformed
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 
-def save_preprocessor(preprocessor: Pipeline, filepath: str = None) -> None:
-    """
-    Save the fitted preprocessor to disk.
-    
-    Args:
-        preprocessor (Pipeline): Fitted preprocessor
-        filepath (str): Path to save the preprocessor
-    """
-    if filepath is None:
-        filepath = PREPROCESSOR_FILE
-    
-    logger.info(f"Saving preprocessor to {filepath}")
-    
-    joblib.dump(preprocessor, filepath)
-    
-    logger.info("Preprocessor saved successfully")
-
-
-def load_preprocessor(filepath: str = None) -> Pipeline:
-    """
-    Load a fitted preprocessor from disk.
-    
-    Args:
-        filepath (str): Path to the saved preprocessor
-        
-    Returns:
-        Pipeline: Loaded preprocessor
-    """
-    if filepath is None:
-        filepath = PREPROCESSOR_FILE
-    
-    logger.info(f"Loading preprocessor from {filepath}")
-    
-    preprocessor = joblib.load(filepath)
-    
-    logger.info("Preprocessor loaded successfully")
-    
-    return preprocessor
-
-
-def get_feature_importance(preprocessor: Pipeline, feature_names: List[str]) -> Dict[str, float]:
-    """
-    Get feature importance from the preprocessor if it includes feature selection.
-    
-    Args:
-        preprocessor (Pipeline): Fitted preprocessor
-        feature_names (List[str]): Original feature names
-        
-    Returns:
-        Dict[str, float]: Feature importance scores
-    """
-    logger.info("Extracting feature importance...")
-    
-    importance_dict = {}
-    
-    # Check if pipeline has feature selector
-    if 'feature_selector' in preprocessor.named_steps:
-        selector = preprocessor.named_steps['feature_selector']
-        selected_indices = selector.selected_features
-        
-        # Get scores from the selector
-        scores = selector.selector.scores_
-        
-        # Create importance dictionary for selected features
-        for idx in selected_indices:
-            if idx < len(feature_names):
-                importance_dict[feature_names[idx]] = float(scores[idx])
-    
-    logger.info(f"Feature importance extracted for {len(importance_dict)} features")
-    
-    return importance_dict
-
-
-def save_feature_names(feature_names: List[str], selected_indices: Optional[List[int]] = None, filepath: str = None) -> None:
-    """
-    Save feature names to disk.
-    
-    Args:
-        feature_names (List[str]): Original feature names
-        selected_indices (Optional[List[int]]): Indices of selected features
-        filepath (str): Path to save the feature names
-    """
-    if filepath is None:
-        filepath = FEATURE_NAMES_FILE
+def build_pipeline():
+    """Create preprocessing pipeline for text data"""
     
     logger.info(f"Saving feature names to {filepath}")
     
@@ -485,6 +404,9 @@ def main():
         logger.error(f"Error in feature engineering: {str(e)}")
         raise
 
+    pipeline = Pipeline([
+        ("tfidf", TfidfVectorizer())
+    ])
 
 if __name__ == "__main__":
     main()
