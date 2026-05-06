@@ -530,6 +530,76 @@ This project is licensed under MIT License - see the LICENSE file for details.
 - Yashika Sridhar
 - Rudhresh 
 
+## Data Leakage Demonstration
+
+This project includes a comprehensive demonstration of **Target Leakage** - one of the most common and dangerous forms of data leakage in machine learning.
+
+### What is Target Leakage?
+
+Target leakage occurs when features that contain information about the target variable are included in the training data. This leads to artificially strong model performance that doesn't generalize to new data.
+
+### Demonstration Overview
+
+Run the leakage demonstration:
+
+```bash
+python data_leakage_demo.py
+```
+
+### Leakage Types Demonstrated
+
+#### ❌ Target Leakage (Demonstrated)
+- **Direct Target Inclusion**: Adding target as a feature
+- **Target-Derived Features**: Creating features from target values
+- **Obvious Patterns**: Using target to create "perfect" indicators
+- **Target Interactions**: Combining target with other features
+
+### Expected Results
+
+| Metric | Leaky Model | Clean Model | Difference |
+|----------|---------------|--------------|-------------|
+| Accuracy | ~99% | ~85% | -14% |
+| F1-Score | ~99% | ~83% | -16% |
+| ROC AUC | ~99% | ~91% | -8% |
+
+### Why Leaky Performance is Invalid
+
+The leaky model shows suspiciously high performance (>95%) because:
+- **Future Information**: Features won't be available at prediction time
+- **Target Patterns**: Model learns target, not email patterns
+- **No Generalization**: Performance drops dramatically on new data
+- **False Confidence**: Artificially inflated metrics
+
+### Why Clean Approach is Valid
+
+The clean model shows realistic performance because:
+- **Available Features**: All features available at prediction time
+- **Real Patterns**: Model learns actual spam characteristics
+- **Generalization**: Will perform consistently on new data
+- **True Performance**: Metrics reflect real-world capability
+
+### Prevention Discipline
+
+1. **Split First**: Always split data before any preprocessing
+2. **No Target**: Never include target in feature engineering
+3. **Availability Check**: Ensure features exist at prediction time
+4. **Domain Knowledge**: Use email characteristics, not target information
+5. **Validation**: Test with truly unseen data
+
+### Key Learnings
+
+- ✅ Data leakage creates artificially strong performance
+- ✅ Performance >95% is often a red flag
+- ✅ Clean models generalize better to production
+- ✅ Feature availability must be validated
+- ✅ Train-test separation prevents leakage
+
+### Files
+
+- `data_leakage_demo.py`: Complete demonstration script
+- Shows both incorrect and correct approaches
+- Includes performance comparison and explanations
+
 ## Quick Start Example
 
 ```python
