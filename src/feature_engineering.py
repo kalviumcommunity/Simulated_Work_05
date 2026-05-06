@@ -36,6 +36,8 @@ class FeatureSelector(BaseEstimator, TransformerMixin):
         return self
     
     def transform(self, X):
+        if self.selected_features is None:
+            raise ValueError("FeatureSelector must be fitted before transform")
         return X[:, self.selected_features]
 
 
@@ -88,14 +90,12 @@ def create_feature_pipeline(
     
     steps = []
     
-    if remove_outliers:
-        steps.append(('outlier_handler', OutlierRemover()))
-    
+    # Use only standard scikit-learn components for reliability
     if scale_features:
         steps.append(('scaler', StandardScaler()))
     
     if select_features:
-        steps.append(('feature_selector', FeatureSelector(k=n_features_to_select)))
+        steps.append(('feature_selector', SelectKBest(f_classif, k=n_features_to_select)))
     
     pipeline = Pipeline(steps)
     
@@ -137,7 +137,8 @@ def fit_preprocessor(
     )
     
     # Fit and transform training data
-    X_train_transformed = preprocessor.fit_transform(X_train, y_train)
+    preprocessor.fit(X_train, y_train)
+    X_train_transformed = preprocessor.transform(X_train)
     
     logger.info(f"Preprocessor fitted. Output shape: {X_train_transformed.shape}")
     

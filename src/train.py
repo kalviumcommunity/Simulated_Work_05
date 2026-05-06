@@ -243,7 +243,8 @@ def main():
         # Save feature names if feature selection was used
         if 'feature_selector' in preprocessor.named_steps:
             selector = preprocessor.named_steps['feature_selector']
-            save_feature_names(FEATURE_NAMES, selector.selected_features)
+            selected_indices = selector.get_support(indices=True)
+            save_feature_names(FEATURE_NAMES, selected_indices)
         else:
             save_feature_names(FEATURE_NAMES)
         
@@ -255,8 +256,12 @@ def main():
         if hasattr(model, 'feature_importances_'):
             if 'feature_selector' in preprocessor.named_steps:
                 selector = preprocessor.named_steps['feature_selector']
-                selected_indices = selector.selected_features
-                feature_importance = get_feature_importance(preprocessor, FEATURE_NAMES)
+                selected_indices = selector.get_support(indices=True)
+                scores = selector.scores_
+                # Create importance dictionary for selected features
+                for idx in selected_indices:
+                    if idx < len(FEATURE_NAMES):
+                        feature_importance[FEATURE_NAMES[idx]] = float(scores[idx])
         
         # Combine all information
         training_summary = {
