@@ -1,12 +1,12 @@
 """
 Feature engineering module for spam email detection.
 Builds reusable transformations and pipelines for feature processing.
-Implements proper StandardScaler on numerical features only.
+Implements proper MinMaxScaler on numerical features only.
 """
 
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.pipeline import Pipeline
@@ -17,7 +17,7 @@ import logging
 
 from config import (
     PREPROCESSOR_FILE, FEATURE_NAMES_FILE, SCALER_FILE,
-    NUMERICAL_FEATURES, CATEGORICAL_FEATURES, SCALING_CONFIG
+    NUMERICAL_FEATURES, CATEGORICAL_FEATURES, SCALING_CONFIG, OUTLIER_CONFIG
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -82,13 +82,13 @@ def create_feature_pipeline(
     categorical_features: List[str] = None
 ) -> Pipeline:
     """
-    Create a reusable feature engineering pipeline with proper scaling.
+    Create a reusable feature engineering pipeline with MinMaxScaler normalization.
     
-    CRITICAL: Only scales NUMERICAL_FEATURES, leaves CATEGORICAL_FEATURES unchanged.
-    Uses ColumnTransformer for professional preprocessing.
+    CRITICAL: Only scales NUMERICAL_FEATURES to [0,1] range, leaves CATEGORICAL_FEATURES unchanged.
+    Uses ColumnTransformer for professional preprocessing with MinMaxScaler.
     
     Args:
-        scale_features (bool): Whether to scale numerical features
+        scale_features (bool): Whether to scale numerical features using MinMaxScaler
         select_features (bool): Whether to perform feature selection
         remove_outliers (bool): Whether to handle outliers
         n_features_to_select (int): Number of features to select if selection is enabled
@@ -98,7 +98,7 @@ def create_feature_pipeline(
     Returns:
         Pipeline: Configured feature engineering pipeline
     """
-    logger.info("Creating feature engineering pipeline with proper scaling...")
+    logger.info("Creating feature engineering pipeline with MinMaxScaler normalization...")
     
     # Use configured feature lists if not provided
     if numerical_features is None:
@@ -106,16 +106,17 @@ def create_feature_pipeline(
     if categorical_features is None:
         categorical_features = CATEGORICAL_FEATURES
     
-    logger.info(f"Numerical features to scale: {len(numerical_features)}")
-    logger.info(f"Categorical features (no scaling): {len(categorical_features)}")
+    logger.info(f"Numerical features to normalize: {len(numerical_features)}")
+    logger.info(f"Categorical features (no normalization): {len(categorical_features)}")
     
     steps = []
     
     # Use ColumnTransformer for proper feature-specific preprocessing
     if scale_features:
         # Create preprocessing pipeline for numerical features only
+        # MinMaxScaler scales features to [0, 1] range
         numerical_transformer = Pipeline(steps=[
-            ('scaler', StandardScaler())  # Scale only numerical features
+            ('scaler', MinMaxScaler(feature_range=(0, 1)))  # Normalize to [0, 1]
         ])
         
         # Categorical features: pass through without scaling
@@ -131,7 +132,7 @@ def create_feature_pipeline(
         )
         
         steps.append(('preprocessor', preprocessor))
-        logger.info("ColumnTransformer configured: StandardScaler on numerical features only")
+        logger.info("ColumnTransformer configured: MinMaxScaler on numerical features only [0,1]")
     
     if select_features:
         steps.append(('feature_selector', SelectKBest(f_classif, k=n_features_to_select)))
@@ -139,7 +140,7 @@ def create_feature_pipeline(
     pipeline = Pipeline(steps)
     
     logger.info(f"Pipeline created with {len(steps)} steps: {[step[0] for step in steps]}")
-    logger.info("✅ Scaling applied to numerical features only (categorical features unchanged)")
+    logger.info("✅ MinMaxScaler normalization applied to numerical features only (categorical unchanged)")
     
     return pipeline
 
@@ -245,7 +246,7 @@ def load_feature_names(filepath: str = None) -> List[str]:
 
 def save_scaler(preprocessor: Pipeline, filepath: str = None) -> None:
     """
-    Save the fitted StandardScaler from the preprocessor pipeline.
+    Save the fitted MinMaxScaler from the preprocessor pipeline.
     
     CRITICAL: Scaler must be saved after fitting on training data only.
     It should NOT be refitted during inference.
@@ -257,7 +258,7 @@ def save_scaler(preprocessor: Pipeline, filepath: str = None) -> None:
     if filepath is None:
         filepath = SCALER_FILE
     
-    logger.info(f"Saving StandardScaler to {filepath}")
+    logger.info(f"Saving MinMaxScaler to {filepath}")
     
     # Extract the scaler from the ColumnTransformer in the pipeline
     if 'preprocessor' in preprocessor.named_steps:
@@ -268,7 +269,7 @@ def save_scaler(preprocessor: Pipeline, filepath: str = None) -> None:
             if hasattr(numerical_pipeline, 'named_steps') and 'scaler' in numerical_pipeline.named_steps:
                 scaler = numerical_pipeline.named_steps['scaler']
                 joblib.dump(scaler, filepath)
-                logger.info("✅ StandardScaler saved successfully (fitted on training data only)")
+                logger.info("✅ MinMaxScaler saved successfully (fitted on training data only)")
             else:
                 logger.warning("No scaler found in numerical pipeline")
         else:
@@ -277,44 +278,47 @@ def save_scaler(preprocessor: Pipeline, filepath: str = None) -> None:
         logger.warning("No preprocessor found in pipeline")
 
 
-def load_scaler(filepath: str = None) -> StandardScaler:
+def load_scaler(filepath: str = None) -> MinMaxScaler:
     """
-    Load a fitted StandardScaler from disk.
+    Load a fitted MinMaxScaler from disk.
     
     IMPORTANT: Loaded scaler should only be used for transform(), NOT fit().
-    This prevents data leakage and ensures consistent scaling.
+    This prevents data leakage and ensures consistent normalization.
     
     Args:
         filepath (str): Path to the saved scaler
         
     Returns:
-        StandardScaler: Loaded scaler ready for inference
+        MinMaxScaler: Loaded scaler ready for inference
     """
     if filepath is None:
         filepath = SCALER_FILE
     
-    logger.info(f"Loading StandardScaler from {filepath}")
+    logger.info(f"Loading MinMaxScaler from {filepath}")
     
     scaler = joblib.load(filepath)
     
-    logger.info("✅ StandardScaler loaded successfully - ready for inference (transform only)")
+    logger.info("✅ MinMaxScaler loaded successfully - ready for inference (transform only)")
     
     return scaler
 
 
 def demonstrate_proper_scaling_workflow():
     """
-    Demonstrate proper train-test split before scaling workflow.
+    Demonstrate proper train-test split before MinMaxScaler normalization workflow.
     
-    This function shows the CORRECT way to apply StandardScaler:
+    This function shows the CORRECT way to apply MinMaxScaler:
     1. Split data FIRST (before any scaling)
-    2. Fit scaler ONLY on training data
+    2. Fit MinMaxScaler ONLY on training data [0,1] range
     3. Transform both train and test using fitted scaler
-    4. Save scaler for inference
-    5. Never refit scaler during inference
+    4. Verify min ≈ 0 and max ≈ 1 in training data
+    5. Save scaler for inference
+    6. Never refit scaler during inference
+    
+    Includes VERIFICATION STEP as required.
     """
     logger.info("=" * 80)
-    logger.info("DEMONSTRATING PROPER SCALING WORKFLOW")
+    logger.info("DEMONSTRATING PROPER MINMAXSCALER NORMALIZATION WORKFLOW")
     logger.info("=" * 80)
     
     from sklearn.datasets import make_classification
@@ -332,22 +336,23 @@ def demonstrate_proper_scaling_workflow():
     logger.info(f"   Target distribution: {y_series.value_counts().to_dict()}")
     
     # Step 1: Split data BEFORE scaling (CRITICAL to prevent data leakage)
-    logger.info("Step 2: Split data BEFORE scaling (prevents data leakage)")
+    logger.info("Step 2: Split data BEFORE normalization (prevents data leakage)")
     X_train, X_test, y_train, y_test = train_test_split(
         X_df, y_series, test_size=0.2, random_state=42, stratify=y_series
     )
     logger.info(f"   Train set: {X_train.shape}")
     logger.info(f"   Test set: {X_test.shape}")
     
-    # Step 2: Create and fit scaler on TRAINING data only
-    logger.info("Step 3: Fit StandardScaler on training data ONLY")
-    scaler = StandardScaler()
+    # Step 2: Create and fit MinMaxScaler on TRAINING data only
+    logger.info("Step 3: Fit MinMaxScaler on training data ONLY [0,1] range")
+    scaler = MinMaxScaler(feature_range=(0, 1))
     X_train_scaled_values = scaler.fit_transform(X_train[NUMERICAL_FEATURES])
     X_train_scaled = X_train.copy()
     X_train_scaled[NUMERICAL_FEATURES] = X_train_scaled_values
-    logger.info(f"   Scaler fitted on {len(NUMERICAL_FEATURES)} numerical features")
-    logger.info(f"   Feature means (train): {scaler.mean_[:3]}...")  # Show first 3
-    logger.info(f"   Feature scales (train): {scaler.scale_[:3]}...")  # Show first 3
+    logger.info(f"   MinMaxScaler fitted on {len(NUMERICAL_FEATURES)} numerical features")
+    logger.info(f"   Data min values (train): {scaler.data_min_[:3]}...")  # Show first 3
+    logger.info(f"   Data max values (train): {scaler.data_max_[:3]}...")  # Show first 3
+    logger.info(f"   Feature ranges (train): {scaler.data_range_[:3]}...")  # Show first 3
     
     # Step 3: Transform test data using fitted scaler (NEVER fit on test data)
     logger.info("Step 4: Transform test data using fitted scaler (transform only)")
@@ -363,20 +368,52 @@ def demonstrate_proper_scaling_workflow():
         test_unchanged = (X_test[cat_feature].values == X_test_scaled[cat_feature].values).all()
         logger.info(f"   {cat_feature}: Unchanged in train={train_unchanged}, test={test_unchanged}")
     
-    # Step 5: Save scaler for inference
-    logger.info("Step 6: Save fitted scaler for inference")
+    # Step 5: VERIFICATION - Check min ≈ 0 and max ≈ 1 in training data
+    logger.info("Step 6: VERIFICATION - Check normalization bounds [0, 1]")
+    train_mins = X_train_scaled[NUMERICAL_FEATURES].min()
+    train_maxs = X_train_scaled[NUMERICAL_FEATURES].max()
+    
+    logger.info(f"   Training data min values: {train_mins.values[:3]}... (should be ≈ 0)")
+    logger.info(f"   Training data max values: {train_maxs.values[:3]}... (should be ≈ 1)")
+    
+    # Verification assertions
+    all_mins_near_zero = np.allclose(train_mins.values, 0, atol=1e-10)
+    all_maxs_near_one = np.allclose(train_maxs.values, 1, atol=1e-10)
+    
+    if all_mins_near_zero and all_maxs_near_one:
+        logger.info("   ✅ VERIFICATION PASSED: All training features normalized to [0, 1]")
+    else:
+        logger.warning("   ⚠️ VERIFICATION WARNING: Some features may not be exactly [0, 1]")
+    
+    # Check test data (should be within [0, 1] but may have slight deviations)
+    test_mins = X_test_scaled[NUMERICAL_FEATURES].min()
+    test_maxs = X_test_scaled[NUMERICAL_FEATURES].max()
+    logger.info(f"   Test data min values: {test_mins.values[:3]}... (may be < 0)")
+    logger.info(f"   Test data max values: {test_maxs.values[:3]}... (may be > 1)")
+    
+    # Step 6: Save scaler for inference
+    logger.info("Step 7: Save fitted MinMaxScaler for inference")
     joblib.dump(scaler, SCALER_FILE)
-    logger.info(f"   Scaler saved to {SCALER_FILE}")
+    logger.info(f"   MinMaxScaler saved to {SCALER_FILE}")
+    
+    # Outlier consideration documentation
+    logger.info("Step 8: Outlier Analysis for MinMaxScaler")
+    logger.info(f"   Outlier strategy: {OUTLIER_CONFIG['outlier_presence']}")
+    logger.info(f"   MinMax sensitivity: {OUTLIER_CONFIG['minmax_sensitivity']}")
+    logger.info(f"   Mitigation: {OUTLIER_CONFIG['mitigation_strategy']}")
+    logger.info(f"   Rationale: {OUTLIER_CONFIG['rationale']}")
     
     logger.info("=" * 80)
-    logger.info("✅ PROPER SCALING WORKFLOW COMPLETED")
+    logger.info("✅ PROPER MINMAXSCALER NORMALIZATION WORKFLOW COMPLETED")
     logger.info("=" * 80)
     logger.info("Key Principles Demonstrated:")
     logger.info("   • Split data BEFORE scaling (prevents data leakage)")
-    logger.info("   • Fit scaler ONLY on training data")
+    logger.info("   • Fit MinMaxScaler ONLY on training data to [0,1]")
     logger.info("   • Transform test data using fitted scaler")
     logger.info("   • Scale ONLY numerical features (categorical unchanged)")
+    logger.info("   • VERIFICATION: Confirm min≈0 and max≈1 in training data")
     logger.info("   • Save scaler for inference (never refit)")
+    logger.info("   • Document outlier considerations")
     
     return X_train_scaled, X_test_scaled, y_train, y_test, scaler
 

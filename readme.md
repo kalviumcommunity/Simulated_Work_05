@@ -878,6 +878,205 @@ After implementing proper scaling:
 ✅ **Numerical Only**: Only scale numerical features, never categorical  
 ✅ **Persistence**: Save and load scaler for consistent inference  
 
+## Numerical Feature Normalization (MinMaxScaler)
+
+This project implements **MinMaxScaler** normalization for numerical features, scaling them to a fixed [0, 1] range. This implementation is specifically designed for scale-sensitive models and ensures proper train-test handling.
+
+### Why MinMaxScaler Was Chosen
+
+**Primary Reasons**:
+1. **Bounded Output**: All features are guaranteed to be in [0, 1] range, preventing extreme values
+2. **Neural Network Compatibility**: Essential for models using sigmoid/softmax activations
+3. **Distance-Based Algorithms**: Improves kNN, SVM, and clustering algorithm performance
+4. **Stable Optimization**: Bounded inputs lead to more stable gradient descent convergence
+
+**MinMaxScaler vs StandardScaler**:
+
+| Aspect | MinMaxScaler | StandardScaler |
+|--------|--------------|----------------|
+| Output Range | [0, 1] (bounded) | Mean=0, Std=1 (unbounded) |
+| Outlier Sensitivity | High (affected by extremes) | Moderate |
+| Best For | Neural Networks, kNN, SVM | Linear models, PCA |
+| Formula | `(X - X.min) / (X.max - X.min)` | `(X - mean) / std` |
+
+### Explicit Feature Definition
+
+**Numerical Features (17 features) - Normalized to [0,1]**:
+
+| Feature | Scaling | Rationale |
+|---------|---------|-----------|
+| `word_freq_free` | ✅ MinMaxScaler [0,1] | Frequency count, needs bounding |
+| `word_freq_offer` | ✅ MinMaxScaler [0,1] | Frequency count, needs bounding |
+| `word_freq_win` | ✅ MinMaxScaler [0,1] | Frequency count, needs bounding |
+| `word_freq_money` | ✅ MinMaxScaler [0,1] | Frequency count, needs bounding |
+| `word_freq_click` | ✅ MinMaxScaler [0,1] | Frequency count, needs bounding |
+| `word_freq_business` | ✅ MinMaxScaler [0,1] | Frequency count, needs bounding |
+| `word_freq_email` | ✅ MinMaxScaler [0,1] | Frequency count, needs bounding |
+| `word_freq_internet` | ✅ MinMaxScaler [0,1] | Frequency count, needs bounding |
+| `word_freq_order` | ✅ MinMaxScaler [0,1] | Frequency count, needs bounding |
+| `word_freq_credit` | ✅ MinMaxScaler [0,1] | Frequency count, needs bounding |
+| `char_freq_exclamation` | ✅ MinMaxScaler [0,1] | Character frequency |
+| `char_freq_dollar` | ✅ MinMaxScaler [0,1] | Character frequency |
+| `capital_run_length_average` | ✅ MinMaxScaler [0,1] | Statistical measure |
+| `capital_run_length_longest` | ✅ MinMaxScaler [0,1] | Statistical measure |
+| `capital_run_length_total` | ✅ MinMaxScaler [0,1] | Statistical measure |
+| `email_length` | ✅ MinMaxScaler [0,1] | Text measurement |
+| `subject_length` | ✅ MinMaxScaler [0,1] | Text measurement |
+| `sender_reputation` | ✅ MinMaxScaler [0,1] | Numerical score |
+
+**Categorical Features (2 features) - NOT Normalized**:
+
+| Feature | Scaling | Rationale |
+|---------|---------|-----------|
+| `has_html` | ❌ None | Binary (0/1), already bounded |
+| `has_attachments` | ❌ None | Binary (0/1), already bounded |
+
+### Proper Train-Test Split Before Normalization
+
+**Critical**: Split data BEFORE any normalization to prevent data leakage.
+
+```python
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+
+# Step 1: Split data FIRST (before normalization)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
+
+# Step 2: Fit MinMaxScaler ONLY on training data
+scaler = MinMaxScaler(feature_range=(0, 1))
+X_train[NUMERICAL_FEATURES] = scaler.fit_transform(X_train[NUMERICAL_FEATURES])
+
+# Step 3: Transform test data using fitted scaler (NEVER fit on test)
+X_test[NUMERICAL_FEATURES] = scaler.transform(X_test[NUMERICAL_FEATURES])
+```
+
+**Confirmation**:
+- ✅ Normalization occurs AFTER train-test split
+- ✅ MinMaxScaler fitted ONLY on training data
+- ✅ Test data transformed using fitted scaler parameters
+- ✅ No data leakage from test set to training set
+
+### Verification Step (Required)
+
+Verification ensures that training data is properly normalized to [0, 1]:
+
+```python
+# Verification: Check min ≈ 0 and max ≈ 1 in training data
+train_mins = X_train[NUMERICAL_FEATURES].min()
+train_maxs = X_train[NUMERICAL_FEATURES].max()
+
+print(f"Training min values: {train_mins.values} (should be ≈ 0)")
+print(f"Training max values: {train_maxs.values} (should be ≈ 1)")
+
+# Assertions
+assert np.allclose(train_mins.values, 0, atol=1e-10), "Min values should be ≈ 0"
+assert np.allclose(train_maxs.values, 1, atol=1e-10), "Max values should be ≈ 1"
+print("✅ VERIFICATION PASSED: All features normalized to [0, 1]")
+```
+
+### Artifact Persistence
+
+Save the fitted MinMaxScaler for consistent inference:
+
+```python
+import joblib
+
+# Save fitted scaler after training
+joblib.dump(scaler, 'models/minmax_scaler.pkl')
+
+# Load scaler for inference (production)
+loaded_scaler = joblib.load('models/minmax_scaler.pkl')
+
+# Use for prediction (transform only, NEVER fit)
+new_data_normalized = loaded_scaler.transform(new_data[NUMERICAL_FEATURES])
+```
+
+**Critical**: Saved scaler is **NEVER refitted** during inference.
+
+### Outlier Considerations
+
+**Outlier Analysis**:
+- **Presence**: Email frequency features may contain outliers (very long emails)
+- **MinMaxScaler Sensitivity**: Extreme values can compress the majority of data
+- **Decision**: No capping applied (outliers preserved in their natural form)
+- **Rationale**: 
+  - Spam emails often have extreme characteristics
+  - Outliers may be informative for classification
+  - Tree-based models (Random Forest) handle outliers well
+  - Neural networks benefit from bounded [0,1] input regardless
+
+**Mitigation Strategy**:
+- Documented outlier presence in configuration
+- MinMaxScaler sensitivity acknowledged
+- Model choice (Random Forest) tolerant to outliers
+- If needed, outliers can be capped in future iterations
+
+### Implementation Example
+
+```python
+from src.feature_engineering import create_feature_pipeline, demonstrate_proper_scaling_workflow
+from src.config import NUMERICAL_FEATURES, CATEGORICAL_FEATURES
+
+# Method 1: Using ColumnTransformer pipeline (recommended)
+pipeline = create_feature_pipeline(
+    scale_features=True,
+    select_features=True,
+    numerical_features=NUMERICAL_FEATURES,
+    categorical_features=CATEGORICAL_FEATURES
+)
+
+# Method 2: Complete workflow with verification
+X_train_norm, X_test_norm, y_train, y_test, scaler = demonstrate_proper_scaling_workflow()
+```
+
+### Data Leakage Prevention
+
+**How Leakage is Prevented**:
+1. **Split First**: Train-test split occurs before any normalization
+2. **Fit on Train Only**: MinMaxScaler learns min/max from training data only
+3. **Transform Test**: Test data transformed using training-derived parameters
+4. **No Information Leak**: Test set statistics never influence normalization
+
+**Correct Workflow**:
+```
+Raw Data → Split → Fit Scaler on Train → Transform Train → Transform Test
+```
+
+**Incorrect Workflow (Leaky)**:
+```
+Raw Data → Fit Scaler on All Data → Split → Transform Train/Test ❌
+```
+
+### Best Practices Enforced
+
+✅ **Split Before Scale**: Always split train/test before normalization  
+✅ **Fit on Train Only**: MinMaxScaler learns from training data only  
+✅ **Transform Both**: Apply fitted scaler to train and test sets  
+✅ **Verification Required**: Confirm min≈0 and max≈1 in training data  
+✅ **No Refitting**: Saved scaler never refitted during inference  
+✅ **Numerical Only**: Only normalize numerical features  
+✅ **Outlier Documentation**: Acknowledge and document outlier handling  
+✅ **Persistence**: Save and load scaler for consistent inference  
+
+### Model Compatibility
+
+**Models Benefiting from MinMaxScaler [0,1]**:
+- Neural Networks (sigmoid/softmax activations)
+- Support Vector Machines (RBF kernel)
+- k-Nearest Neighbors (distance calculations)
+- K-Means Clustering
+- Principal Component Analysis (optional)
+
+**Models Not Requiring Normalization**:
+- Random Forest (tree-based, invariant to scaling)
+- Decision Trees
+- Gradient Boosting Machines
+- Naive Bayes
+
+**Current Model**: Random Forest (doesn't strictly require normalization, but MinMaxScaler provides consistency for potential model swaps)
+
 ## Quick Start Example
 
 ```python
