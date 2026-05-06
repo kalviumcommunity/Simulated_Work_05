@@ -1,208 +1,32 @@
-"""
-Training module for spam email detection.
-Fits the model and saves artifacts for later prediction.
-"""
-
-import pandas as pd
-import numpy as np
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import SVC
+from src.data_loader import load_data
+from src.data_preprocessing import split_data, build_pipeline
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 import joblib
-import logging
-from typing import Tuple, Dict, Any
-
-from config import (
-    MODEL_TYPE, MODEL_PARAMS, MODEL_FILE, FEATURE_NAMES_FILE,
-    RANDOM_STATE, FEATURE_NAMES
-)
-from data_preprocessing import load_data, clean_data, split_data
-from feature_engineering import (
-    fit_preprocessor, save_preprocessor, save_feature_names,
-    get_feature_importance
-)
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
-def create_model(model_type: str = MODEL_TYPE, **params) -> Any:
-    """
-    Create a machine learning model instance.
-    
-    Args:
-        model_type (str): Type of model to create
-        **params: Additional parameters for the model
-        
-    Returns:
-        Any: Model instance
-    """
-    logger.info(f"Creating {model_type} model...")
-    
-    if model_type == 'random_forest':
-        default_params = {
-            'random_state': RANDOM_STATE,
-            'max_depth': 10
-        }
-        params = {**default_params, **params}
-        model = RandomForestClassifier(**params)
-        
-    elif model_type == 'svm':
-        default_params = {
-            'random_state': RANDOM_STATE,
-            'kernel': 'rbf',
-            'C': 1.0
-        }
-        params = {**default_params, **params}
-        model = SVC(**params, probability=True)
-        
-    elif model_type == 'logistic_regression':
-        default_params = {
-            'random_state': RANDOM_STATE,
-            'max_iter': 1000
-        }
-        params = {**default_params, **params}
-        model = LogisticRegression(**params)
-        
-    else:
-        raise ValueError(f"Unsupported model type: {model_type}")
-    
-    logger.info(f"Model created with parameters: {params}")
-    
-    return model
+def train():
+    # 📥 Load dataset
+    df = load_data("data/raw/data.csv")
 
+    # 🔒 Split BEFORE any preprocessing (prevents leakage)
+    X_train, X_test, y_train, y_test = split_data(df)
 
-def train_model(
-    X_train: np.ndarray,
-    y_train: np.ndarray,
-    model_type: str = MODEL_TYPE,
-    **model_params
-) -> Tuple[Any, Dict[str, Any]]:
-    """
-    Train a machine learning model.
-    
-    Args:
-        X_train (np.ndarray): Training features
-        y_train (np.ndarray): Training labels
-        model_type (str): Type of model to train
-        **model_params: Additional parameters for the model
-        
-    Returns:
-        Tuple[Any, Dict]: Trained model and training information
-    """
-    logger.info(f"Training {model_type} model...")
-    
-    # Create and train model
-    model = create_model(model_type, **model_params)
-    model.fit(X_train, y_train)
-    
-    # Get training predictions for basic metrics
-    train_predictions = model.predict(X_train)
-    
-    # Calculate training metrics
-    training_info = {
-        'model_type': model_type,
-        'model_params': model_params,
-        'training_samples': len(X_train),
-        'feature_count': X_train.shape[1],
-        'training_accuracy': float(accuracy_score(y_train, train_predictions)),
-        'training_precision': float(precision_score(y_train, train_predictions, average='binary')),
-        'training_recall': float(recall_score(y_train, train_predictions, average='binary')),
-        'training_f1': float(f1_score(y_train, train_predictions, average='binary'))
-    }
-    
-    # Add model-specific information
-    if hasattr(model, 'feature_importances_'):
-        training_info['has_feature_importances'] = True
-    else:
-        training_info['has_feature_importances'] = False
-    
-    logger.info(f"Model trained successfully!")
-    logger.info(f"Training accuracy: {training_info['training_accuracy']:.4f}")
-    
-    return model, training_info
+    # 🧠 Build TF-IDF vectorizer
+    vectorizer = build_pipeline()
 
+    # ✅ Fit ONLY on training data
+    X_train_transformed = vectorizer.fit_transform(X_train)
 
-def save_model(model: Any, filepath: str = None) -> None:
-    """
-    Save the trained model to disk.
-    
-    Args:
-        model: Trained model object
-        filepath (str): Path to save the model
-    """
-    if filepath is None:
-        filepath = MODEL_FILE
-    
-    logger.info(f"Saving model to {filepath}")
-    
-    joblib.dump(model, filepath)
-    
-    logger.info("Model saved successfully")
+    # ✅ Transform test data (no fitting!)
+    X_test_transformed = vectorizer.transform(X_test)
 
+    # 🤖 Train model
+    model = LogisticRegression(max_iter=1000)
+    model.fit(X_train_transformed, y_train)
 
-def load_model(filepath: str = None) -> Any:
-    """
-    Load a trained model from disk.
-    
-    Args:
-        filepath (str): Path to the saved model
-        
-    Returns:
-        Any: Loaded model object
-    """
-    if filepath is None:
-        filepath = MODEL_FILE
-    
-    logger.info(f"Loading model from {filepath}")
-    
-    model = joblib.load(filepath)
-    
-    logger.info("Model loaded successfully")
-    
-    return model
-
-
-def evaluate_training_model(
-    model: Any,
-    X_test: np.ndarray,
-    y_test: np.ndarray
-) -> Dict[str, float]:
-    """
-    Evaluate the trained model on test data.
-    
-    Args:
-        model: Trained model object
-        X_test (np.ndarray): Test features
-        y_test (np.ndarray): Test labels
-        
-    Returns:
-        Dict[str, float]: Test metrics
-    """
-    logger.info("Evaluating model on test data...")
-    
-    # Make predictions
-    test_predictions = model.predict(X_test)
-    
-    # Calculate metrics
-    test_metrics = {
-        'test_accuracy': float(accuracy_score(y_test, test_predictions)),
-        'test_precision': float(precision_score(y_test, test_predictions, average='binary')),
-        'test_recall': float(recall_score(y_test, test_predictions, average='binary')),
-        'test_f1': float(f1_score(y_test, test_predictions, average='binary'))
-    }
-    
-    # Add ROC AUC if model supports probabilities
-    if hasattr(model, 'predict_proba'):
-        from sklearn.metrics import roc_auc_score
-        test_probabilities = model.predict_proba(X_test)[:, 1]
-        test_metrics['test_roc_auc'] = float(roc_auc_score(y_test, test_probabilities))
-    
-    logger.info(f"Test evaluation completed. Accuracy: {test_metrics['test_accuracy']:.4f}")
-    
-    return test_metrics
-
+    # 💾 Save artifacts
+    joblib.dump(vectorizer, "models/preprocessing.pkl")
+    joblib.dump(model, "models/model.pkl")
 
 def main():
     """
@@ -289,7 +113,9 @@ def main():
     except Exception as e:
         logger.error(f"Error in training pipeline: {str(e)}")
         raise
+    print("\n✅ Training complete and model saved!")
+    print("✅ Test set remained untouched during training")
 
 
 if __name__ == "__main__":
-    main()
+    train()
