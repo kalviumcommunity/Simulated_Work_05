@@ -1,32 +1,36 @@
-from data_loader import load_data
-from preprocessing import build_pipeline
-from sklearn.model_selection import train_test_split
+from src.data_loader import load_data
+from src.data_preprocessing import split_data, build_pipeline
 from sklearn.linear_model import LogisticRegression
 import joblib
 
+
 def train():
+    # 📥 Load dataset
     df = load_data("data/raw/data.csv")
 
-    X = df["text"]
-    y = df["label"]
+    # 🔒 Split BEFORE any preprocessing (prevents leakage)
+    X_train, X_test, y_train, y_test = split_data(df)
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
-    )
+    # 🧠 Build TF-IDF vectorizer
+    vectorizer = build_pipeline()
 
-    pipeline = build_pipeline()
+    # ✅ Fit ONLY on training data
+    X_train_transformed = vectorizer.fit_transform(X_train)
 
-    X_train_transformed = pipeline.fit_transform(X_train)
-    X_test_transformed = pipeline.transform(X_test)
+    # ✅ Transform test data (no fitting!)
+    X_test_transformed = vectorizer.transform(X_test)
 
-    model = LogisticRegression()
+    # 🤖 Train model
+    model = LogisticRegression(max_iter=1000)
     model.fit(X_train_transformed, y_train)
 
-    # Save artifacts
-    joblib.dump(pipeline, "models/preprocessing.pkl")
+    # 💾 Save artifacts
+    joblib.dump(vectorizer, "models/preprocessing.pkl")
     joblib.dump(model, "models/model.pkl")
 
-    print("Training complete and model saved!")
+    print("\n✅ Training complete and model saved!")
+    print("✅ Test set remained untouched during training")
+
 
 if __name__ == "__main__":
     train()
