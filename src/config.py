@@ -97,6 +97,17 @@ FEATURE_METADATA = {
 MODEL_FILE = MODELS_DIR / "spam_classifier.pkl"
 PREPROCESSOR_FILE = MODELS_DIR / "preprocessor.pkl"
 FEATURE_NAMES_FILE = MODELS_DIR / "feature_names.pkl"
+SCALER_FILE = MODELS_DIR / "standard_scaler.pkl"  # StandardScaler for numerical features
+
+# Scaling configuration
+SCALING_CONFIG = {
+    "scaler_type": "StandardScaler",
+    "target_features": "NUMERICAL_FEATURES only",
+    "fit_on": "training data only",
+    "transform_on": "both train and test data",
+    "categorical_scaling": False,
+    "target_scaling": False
+}
 # Excluded
 EXCLUDED_COLUMNS = [
     # add if dataset has ID column
