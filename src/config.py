@@ -118,16 +118,28 @@ FEATURE_METADATA = {
 MODEL_FILE = MODELS_DIR / "spam_classifier.pkl"
 PREPROCESSOR_FILE = MODELS_DIR / "preprocessor.pkl"
 FEATURE_NAMES_FILE = MODELS_DIR / "feature_names.pkl"
-SCALER_FILE = MODELS_DIR / "standard_scaler.pkl"  # StandardScaler for numerical features
+SCALER_FILE = MODELS_DIR / "minmax_scaler.pkl"  # MinMaxScaler for numerical features
 
-# Scaling configuration
+# Scaling configuration - MinMaxScaler Implementation
 SCALING_CONFIG = {
-    "scaler_type": "StandardScaler",
+    "scaler_type": "MinMaxScaler",
+    "scaler_range": [0, 1],
     "target_features": "NUMERICAL_FEATURES only",
     "fit_on": "training data only",
     "transform_on": "both train and test data",
     "categorical_scaling": False,
-    "target_scaling": False
+    "target_scaling": False,
+    "outlier_strategy": "minmax_sensitive_documented",
+    "verification_required": True
+}
+
+# Outlier configuration for MinMaxScaler
+OUTLIER_CONFIG = {
+    "outlier_presence": "checked_in_analysis",
+    "minmax_sensitivity": "high_extreme_values_affect_bounds",
+    "mitigation_strategy": "documented_in_readme",
+    "capping_considered": False,
+    "rationale": "MinMaxScaler chosen for bounded [0,1] output suitable for neural networks"
 }
 
 # Ensure directories exist
